@@ -69,7 +69,7 @@ YUI.add('moodle-qtype_ddmarker-form', function(Y) {
            var coords= this.convert_to_bg_img_xy([e.pageX, e.pageY]);           
            coord_input_id= '#'+last_dropcoord_clicked.target.get('id');
            coord_input_name= last_dropcoord_clicked.target.get('name');
-           var regex=/\[(.*?)\]/;
+           var regex=/\[(.*?)\]/; /* pull number from within square braces e.g. [0]*/
            number=regex.exec(coord_input_name);           
            var shapetype=Y.one('#id_drops_'+number[1]+'_shape').get('value');     
            var coord_input_val = Y.one(coord_input_id).get("value");
@@ -89,22 +89,22 @@ YUI.add('moodle-qtype_ddmarker-form', function(Y) {
                  xval=coord_input_val.substr(0,commalocation);
                 /* plus one so the comma is not included */
               yval=coord_input_val.substr(commalocation+1,coord_input_val.length);
-              if(shapetype=='circle'){
+              if(shapetype==='circle'){
                   if((coord_input_val.search(";")>-1)){
                       return;
                   }
                   var point1={
                       x: xval,
-                      y: yval,
-                  }
+                      y: yval
+                  };
                   var point2={
                       x:coords[0],
-                      y:coords[1],
-                  }
+                      y:coords[1]
+                  };
                  coords=this.lineDistance(point1,point2);     
                  coords=";"+coords;
               }else{           
-                if(shapetype=='rectangle'){
+                if(shapetype==='rectangle'){
                     coords[0]=coords[0]-xval;
                     coords[1]=coords[1]-yval;
                 }
@@ -113,7 +113,7 @@ YUI.add('moodle-qtype_ddmarker-form', function(Y) {
             }
            coord_input_val=coord_input_val+coords;
            Y.one(coord_input_id).set('value',coord_input_val);
-           if (ev == null) { ev = window.event }
+           if (ev === null) { ev = window.event };
            
         },
          lineDistance: function( point1, point2 )
