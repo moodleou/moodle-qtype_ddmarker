@@ -1,3 +1,11 @@
+Branch of the Moodle/OU ddmarker question type by Marcus Green. Additional javascript in file.js
+allows the co-ordinates of the shapes to be defined by clicking in the image. 
+
+You can see a video of it in action at
+
+http://www.examulator.com/ddmarker/
+
+
 Drag-and-drop markers question type
 -----------------------------------
 
