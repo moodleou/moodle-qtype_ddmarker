@@ -19,12 +19,16 @@ YUI.add('moodle-qtype_ddmarker-form', function (Y, NAME) {
  * This is the question editing form code.
  */
 var DDMARKERFORMNAME = 'moodle-qtype_ddmarker-form';
+/*used in graphical shape definition code */
+var last_dropcoord_clicked;
+
 var DDMARKER_FORM = function() {
     DDMARKER_FORM.superclass.constructor.apply(this, arguments);
+
 };
 Y.extend(DDMARKER_FORM, M.qtype_ddmarker.dd_base_class, {
     fp : null,
-
+    
     initializer : function() {
         var pendingid = 'qtype_ddmarker-form-' + Math.random().toString(36).slice(2); // Random string.
         M.util.js_pending(pendingid);
@@ -45,7 +49,91 @@ Y.extend(DDMARKER_FORM, M.qtype_ddmarker.dd_base_class, {
         Y.after(this.load_bg_image, M.form_filepicker, 'callback', this);
         this.load_bg_image();
     },
-
+    
+    /* the start of graphical shape definition code */
+     convert_to_bg_img_xy : function (windowxy) {
+        return [Math.round(+windowxy[0] - this.doc.bg_img().getX()-1),
+        +Math.round(windowxy[1] - this.doc.bg_img().getY())];
+    },
+    /*catches location of clicks on the image to convert
+     * to co-ordinates to poke into the text box
+     */
+    clickxy : function (e) {
+        var coords= this.convert_to_bg_img_xy([e.pageX, e.pageY]);
+        coord_input_id= '#'+last_dropcoord_clicked.target.get('id');
+        coord_input_name= last_dropcoord_clicked.target.get('name');
+        var regex=/\[(.*?)\]/; /* pull number from within square braces e.g. [0]*/
+        number=regex.exec(coord_input_name);
+        var shapetype=Y.one('#id_drops_'+number[1]+'_shape').get('value');
+        var coord_input_val = Y.one(coord_input_id).get("value");
+        
+        /*if a ; is found then all coords are entered for
+         * a rectangle so return
+         */
+           if((coord_input_val.search(";")>-1)&& (shapetype==='rectangle')){
+               return;
+           }
+             commalocation = coord_input_val.search(",");
+           /* if there is a comma then the top xy coords must
+            * have been entered so now add the height and width
+            * and  the terminating ; character
+            */
+           if(commalocation>-1){
+                 xval=coord_input_val.substr(0,commalocation);
+                /* plus one so the comma is not included */
+              yval=coord_input_val.substr(commalocation+1,coord_input_val.length);
+              if(shapetype==='circle'){
+                  if((coord_input_val.search(";")>-1)){
+                      return;
+                  }
+                  var point1={
+                      x: xval,
+                      y: yval
+                  };
+                  var point2={
+                      x:coords[0],
+                      y:coords[1]
+                  };
+                 coords=this.lineDistance(point1,point2);
+                 coords=";"+coords;
+              }else{
+                if(shapetype==='rectangle'){
+                    /*works out height and width */
+                    coords[0]=coords[0]-xval;
+                    coords[1]=coords[1]-yval;
+                }
+                coords=";"+coords;
+                }
+            }
+            /*append the new value ready to poke into the input box */
+            coord_input_val=coord_input_val+coords;
+           Y.one(coord_input_id).set('value',coord_input_val);
+           if (ev === null) { ev = window.event; }
+    },
+      /* work out the distance between two points
+       * apparently based on pythagoras theorum
+       */
+      lineDistance: function( point1, point2 )
+         {
+            var xs = 0;
+            var ys = 0;
+            xs = point2.x - point1.x;
+            xs = xs * xs;
+            ys = point2.y - point1.y;
+            ys = ys * ys;
+            return Math.round(Math.sqrt( xs + ys ));
+         },
+         
+        /*the dropzones co-ordinate boxes have the form
+         * id_drops_0_coords, id_drops_1_coords etc
+         * this sets that number for use later
+         */
+        set_dropzoneno: function(dropzoneno){
+            last_dropcoord_clicked=dropzoneno;
+            
+        },
+    
+    
     load_bg_image : function() {
         var bgimageurl = this.fp.file('bgimage').href;
         if (bgimageurl !== null) {
@@ -86,6 +174,8 @@ Y.extend(DDMARKER_FORM, M.qtype_ddmarker.dd_base_class, {
         this.graphics = new Y.Graphic({render:"div.ddarea div.dropzones"});
         var noofdropzones = this.form.get_form_value('nodropzone', []);
         for (var dropzoneno = 0; dropzoneno < noofdropzones; dropzoneno++) {
+            /* part of graphical shape definition */
+            Y.one('input#id_drops_'+dropzoneno+'_coords').on('click',this.set_dropzoneno,this);
             var dragitemno = this.form.get_form_value('drops', [dropzoneno, 'choice']);
             var markertext = this.get_marker_text(dragitemno);
             var shape = this.form.get_form_value('drops', [dropzoneno, 'shape']);
@@ -96,6 +186,9 @@ Y.extend(DDMARKER_FORM, M.qtype_ddmarker.dd_base_class, {
             this.draw_drop_zone(dropzoneno, markertext,
                     shape, coords, colourfordropzone, false);
         }
+        
+        Y.one('div.ddarea .grid').on('click',this.clickxy,this);
+
         Y.one('div.ddarea .grid')
             .setXY(this.doc.bg_img().getXY())
             .setStyle('width', this.doc.bg_img().get('width'))
